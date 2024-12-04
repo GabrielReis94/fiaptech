@@ -24,18 +24,18 @@ jobs:
 
         for service in $(ls -d */ | grep -E 'Service|API'); do
           # Remover a barra final do nome do diretório
-          service_name=$(echo $service | sed 's/\/$//')
+          service_name=$(basename $service)
 
-        # Converter para lowercase
-        service_name_lower=$(echo $service_name | tr '[:upper:]' '[:lower:]')
+          # Converter para lowercase
+          service_name_lower=$(echo $service_name | tr '[:upper:]' '[:lower:]')
 
           # Verificar se o Dockerfile existe
           if [ -f "$service/Dockerfile" ]; then
             echo "Building and pushing $service_name_lower"
-            cd $service
-            docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 .
+
+            # Contexto de build ajustado
+            docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 -f $service/Dockerfile $service
             docker push ${{ secrets.ACR_NAME }}/${service_name_lower}:v1
-            cd ..
           else
             echo "Skipping $service_name_lower: Dockerfile not found."
           fi
@@ -51,5 +51,13 @@ jobs:
     - name: Deploy to AKS
       run: |
         for service in $(ls -d */ | grep -E 'Service|API'); do
-          kubectl apply -f $service/deployment.yaml
+          service_name=$(basename $service)
+
+          # Verificar se o arquivo de deployment existe
+          if [ -f "$service/deployment.yaml" ]; then
+            echo "Applying deployment for $service_name"
+            kubectl apply -f $service/deployment.yaml
+          else
+            echo "Skipping $service_name: deployment.yaml not found."
+          fi
         done
