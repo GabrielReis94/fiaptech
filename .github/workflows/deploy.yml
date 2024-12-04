@@ -33,13 +33,14 @@ jobs:
           if [ -f "$service/Dockerfile" ]; then
             echo "Building and pushing $service_name_lower"
 
-            # Contexto de build ajustado
+            # Ajustar o contexto de build
             docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 -f $service/Dockerfile $service
             docker push ${{ secrets.ACR_NAME }}/${service_name_lower}:v1
           else
             echo "Skipping $service_name_lower: Dockerfile not found."
           fi
         done
+
 
     - name: Set Kubernetes Context
       uses: azure/aks-set-context@v2
