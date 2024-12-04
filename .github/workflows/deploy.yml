@@ -20,13 +20,17 @@ jobs:
 
     - name: Build and Push Docker Images
       run: |
+        # Login no Azure Container Registry
         az acr login --name ${{ secrets.ACR_NAME }}
+        
+        # Iterar sobre os diretórios que contém 'Service' ou 'API' no nome
         for service in $(ls -d */ | grep -E 'Service|API'); do
-          cd $service
-          # Corrigindo o formato da tag para a imagem Docker
-          docker build -t ${{ secrets.ACR_NAME }}/${service}:v1 .
-          docker push ${{ secrets.ACR_NAME }}/${service}:v1
-          cd ..
+          # Remover a barra no final do nome do diretório, se houver
+          service_name=$(echo $service | sed 's/\/$//')
+
+          # Construir e empurrar a imagem Docker para o ACR
+          docker build -t ${{ secrets.ACR_NAME }}/${service_name}:v1 .
+          docker push ${{ secrets.ACR_NAME }}/${service_name}:v1
         done
 
     - name: Set Kubernetes Context
