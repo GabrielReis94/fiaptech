@@ -20,20 +20,25 @@ jobs:
 
     - name: Build and Push Docker Images
       run: |
-        # Login no Azure Container Registry
         az acr login --name ${{ secrets.ACR_NAME }}
 
-        # Iterar sobre os diretórios que contém 'Service' ou 'API' no nome
         for service in $(ls -d */ | grep -E 'Service|API'); do
-          # Remover a barra no final do nome do diretório, se houver
+          # Remover a barra final do nome do diretório
           service_name=$(echo $service | sed 's/\/$//')
 
-          # Converter o nome do serviço para lowercase
-          service_name_lower=$(echo $service_name | tr '[:upper:]' '[:lower:]')
+        # Converter para lowercase
+        service_name_lower=$(echo $service_name | tr '[:upper:]' '[:lower:]')
 
-          # Construir e empurrar a imagem Docker para o ACR
-          docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 .
-          docker push ${{ secrets.ACR_NAME }}/${service_name_lower}:v1
+          # Verificar se o Dockerfile existe
+          if [ -f "$service/Dockerfile" ]; then
+            echo "Building and pushing $service_name_lower"
+            cd $service
+            docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 .
+            docker push ${{ secrets.ACR_NAME }}/${service_name_lower}:v1
+            cd ..
+          else
+            echo "Skipping $service_name_lower: Dockerfile not found."
+          fi
         done
 
     - name: Set Kubernetes Context
