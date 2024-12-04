@@ -3,7 +3,7 @@ name: Build and Deploy to AKS
 on:
   push:
     branches:
-      - main  # O pipeline será acionado em pushs para a branch principal
+      - main
 
 jobs:
   build-and-deploy:
@@ -23,24 +23,17 @@ jobs:
         az acr login --name ${{ secrets.ACR_NAME }}
 
         for service in $(ls -d */ | grep -E 'Service|API'); do
-          # Remover a barra final do nome do diretório
           service_name=$(basename $service)
-
-          # Converter para lowercase
           service_name_lower=$(echo $service_name | tr '[:upper:]' '[:lower:]')
 
-          # Verificar se o Dockerfile existe
           if [ -f "$service/Dockerfile" ]; then
             echo "Building and pushing $service_name_lower"
-
-            # Ajustar o contexto de build
-            docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 -f $service/Dockerfile $service
+            docker build -t ${{ secrets.ACR_NAME }}/${service_name_lower}:v1 -f $service/Dockerfile .
             docker push ${{ secrets.ACR_NAME }}/${service_name_lower}:v1
           else
             echo "Skipping $service_name_lower: Dockerfile not found."
           fi
         done
-
 
     - name: Set Kubernetes Context
       uses: azure/aks-set-context@v2
@@ -52,13 +45,5 @@ jobs:
     - name: Deploy to AKS
       run: |
         for service in $(ls -d */ | grep -E 'Service|API'); do
-          service_name=$(basename $service)
-
-          # Verificar se o arquivo de deployment existe
-          if [ -f "$service/deployment.yaml" ]; then
-            echo "Applying deployment for $service_name"
-            kubectl apply -f $service/deployment.yaml
-          else
-            echo "Skipping $service_name: deployment.yaml not found."
-          fi
+          kubectl apply -f $service/deployment.yaml
         done
