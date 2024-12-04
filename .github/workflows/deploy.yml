@@ -25,9 +25,16 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Azure Container Registry login
+      uses: azure/docker-login@v2
+      with:
+        login-server: ${{ secrets.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+      
     - name: Build and Push Docker Images
       run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
+        
 
         for service in $(ls -d */ | grep -E 'Service|API'); do
           service_name=$(basename $service)
