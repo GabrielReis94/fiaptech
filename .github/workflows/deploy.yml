@@ -1,0 +1,42 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main  # O pipeline será acionado em pushs para a branch principal
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Log in to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and Push Docker Images
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
+        for service in $(ls -d */ | grep -E 'Service|API'); do
+          cd $service
+          docker build -t ${{ secrets.ACR_NAME }}/$service:latest .
+          docker push ${{ secrets.ACR_NAME }}/$service:latest
+          cd ..
+        done
+
+    - name: Set Kubernetes Context
+      uses: azure/aks-set-context@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+
+    - name: Deploy to AKS
+      run: |
+        for service in $(ls -d */ | grep -E 'Service|API'); do
+          kubectl apply -f $service/deployment.yaml
+        done
