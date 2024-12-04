@@ -23,8 +23,8 @@ jobs:
         az acr login --name ${{ secrets.ACR_NAME }}
         for service in $(ls -d */ | grep -E 'Service|API'); do
           cd $service
-          docker build -t ${{ secrets.ACR_NAME }}/$service:latest .
-          docker push ${{ secrets.ACR_NAME }}/$service:latest
+          docker build -t ${{ secrets.ACR_NAME }}/${service}:latest .
+          docker push ${{ secrets.ACR_NAME }}/${service}:latest
           cd ..
         done
 
